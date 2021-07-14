@@ -76,6 +76,7 @@ VALUES
     (null, 2, "WOW!", 1),
     (null, 2, "YES!", 2),
     (2, 4, "NO!", 2),
+    (2, 3, "NOOOOOO!", 2),
     (3, 2, "Not NO, it's YES!", 2),
     (4, 1, "Neither NO nor YES!", 2),
     (1, 1, "WOOOOOOW!!!!", 1),

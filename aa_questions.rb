@@ -52,6 +52,14 @@ class User
             @fname = options['fname']
             @lname = options['lname']
       end
+
+      def authored_questions
+            Question.find_by_author_id(@id)
+      end
+
+      def authored_replies
+            Reply.find_by_user_id(@id)
+      end
 end
 
 class Question
@@ -95,6 +103,15 @@ class Question
             @body = options['body']
             @user_id = options['user_id']
       end
+
+      def author
+            User.find_by_id(@user_id)
+      end
+
+      def replies
+            Reply.find_by_question_id(@id)
+      end
+
 end
 
 class Reply
@@ -145,11 +162,98 @@ class Reply
             data.map {|question| Reply.new(question)}
       end
 
+      def self.find_by_parent_id(parent_id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, parent_id)
+                  SELECT
+                        *
+                  FROM 
+                        replies
+                  WHERE
+                  parent_id = ?
+            SQL
+            return nil unless data.length > 0
+            data.map {|question| Reply.new(question)}
+      end
+
       def initialize(options)
             @id = options['id']
             @parent_id = options['parent_id']
             @user_id = options['user_id']
             @body = options['body']
             @question_id = options['question_id']
+      end
+
+      def author
+            User.find_by_id(@user_id)
+      end
+
+      def question
+            Question.find_by_id(@question_id)
+      end
+
+      def parent_reply
+            return self if @parent_id.nil?
+            Reply.find_by_id(@parent_id)
+      end
+
+      def child_replies
+            Reply.find_by_parent_id(@id)
+      end
+
+end
+
+class QuestionFollow
+      attr_accessor :id, :question_id, :user_id
+
+      def self.all
+            data = QuestionsDatabase.instance.execute("SELECT * FROM question_follows")
+            data.map {|datum| QuestionFollow.new(datum)}
+      end
+
+      def self.find_by_id(id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, id)
+                  SELECT
+                        *
+                  FROM 
+                        question_follows
+                  WHERE
+                        id = ?
+            SQL
+            return nil unless data.length > 0
+            QuestionFollow.new(data.first)
+      end
+
+      def initialize(options)
+            @id = options['id']
+            @question_id = options['question_id']
+            @user_id = options['user_id']
+      end
+end
+
+class QuestionLike
+      attr_accessor :id, :question_id, :user_id
+
+      def self.all
+            data = QuestionsDatabase.instance.execute("SELECT * FROM question_likes")
+            data.map {|datum| QuestionLike.new(datum)}
+      end
+
+      def self.find_by_id(id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, id)
+                  SELECT
+                        *
+                  FROM 
+                        question_likes
+                  WHERE
+                        id = ?
+            SQL
+            return nil unless data.length > 0
+            QuestionLike.new(data.first)
+      end
+
+      def initialize(options)
+            @id = options['id']
+            @question_id = options['question_id']
+            @user_id = options['user_id']
       end
 end
