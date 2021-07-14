@@ -60,6 +60,10 @@ class User
       def authored_replies
             Reply.find_by_user_id(@id)
       end
+
+      def followed_questions
+          QuestionFollow.followed_questions_for_user_id(@id)  
+      end
 end
 
 class Question
@@ -97,6 +101,10 @@ class Question
             data.map {|user| Question.new(user)}
       end
 
+      def self.most_followed(n)
+            QuestionFollow.most_followed_questions(n)
+      end
+
       def initialize(options)
             @id = options['id']
             @title = options['title']
@@ -110,6 +118,10 @@ class Question
 
       def replies
             Reply.find_by_question_id(@id)
+      end
+
+      def followers
+            QuestionFollow.followers_for_question_id(@id)
       end
 
 end
@@ -221,6 +233,51 @@ class QuestionFollow
             SQL
             return nil unless data.length > 0
             QuestionFollow.new(data.first)
+      end
+
+      def self.followers_for_question_id(question_id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+                  SELECT
+                        users.id, fname, lname
+                  FROM
+                        question_follows JOIN users
+                        ON user_id = users.id
+                  WHERE
+                        question_id = ?
+                  
+            SQL
+            data.map {|datum| User.new(datum)}
+      end
+
+      def self.followed_questions_for_user_id(user_id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+                  SELECT
+                        questions.id, title, body, questions.user_id
+                  FROM
+                        questions JOIN question_follows
+                        ON questions.id = question_follows.question_id
+                  WHERE
+                        question_follows.user_id = ?
+                  
+            SQL
+            data.map {|datum| Question.new(datum)}
+      end
+
+      def self.most_followed_questions(number)
+            data = QuestionsDatabase.instance.execute(<<-SQL, number)
+                  SELECT
+                        questions.id, title, body, questions.user_id, count(*) AS count
+                  FROM
+                        question_follows JOIN questions 
+                        ON question_id = questions.id
+                  GROUP BY 
+                        1  
+                  ORDER BY 
+                        5 DESC 
+                  LIMIT ? 
+            SQL
+
+           data.map {|datum| Question.new(datum)}
       end
 
       def initialize(options)
