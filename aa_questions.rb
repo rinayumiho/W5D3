@@ -64,6 +64,10 @@ class User
       def followed_questions
           QuestionFollow.followed_questions_for_user_id(@id)  
       end
+
+      def liked_questions
+            QuestionLike.liked_questions_for_user_id(@id)
+      end
 end
 
 class Question
@@ -122,6 +126,14 @@ class Question
 
       def followers
             QuestionFollow.followers_for_question_id(@id)
+      end
+
+      def likers
+            QuestionLike.likers_for_question_id(@id)
+      end
+
+      def num_likes
+            QuestionLike.num_likes_for_question_id(@id)
       end
 
 end
@@ -306,6 +318,48 @@ class QuestionLike
             SQL
             return nil unless data.length > 0
             QuestionLike.new(data.first)
+      end
+
+      def self.likers_for_question_id(question_id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+                  SELECT
+                        users.id, fname, lname
+                  FROM
+                        users JOIN
+                        question_likes ON question_likes.user_id = users.id
+                  WHERE
+                        question_id = ?
+            SQL
+            data.map {|datum| User.new(datum)}
+      end
+
+      def self.num_likes_for_question_id(question_id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+                  SELECT
+                        count(*)
+                  FROM
+                        question_likes
+                  where
+                        question_id = ?
+                  group by
+                        question_id
+            SQL
+            return nil if data.empty?
+            data[0].values[0]
+      end
+
+      def self.liked_questions_for_user_id(user_id)
+            data = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+            SELECT
+                  questions.id, title, body, questions.user_id
+            FROM
+                  question_likes Join
+                  questions ON questions.id = question_id
+            where
+                  question_likes.user_id = ?
+            SQL
+            return nil if data.empty?
+            Question.new(data.first)
       end
 
       def initialize(options)
